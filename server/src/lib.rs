@@ -1,12 +1,6 @@
-use sqlx::{Pool, Postgres};
-mod config;
+#![forbid(unsafe_code)]
 
-pub use config::*;
-
-/// The application state.
-pub struct AppState {
-    /// The environment configuration.
-    pub config: config::Config,
-    /// Postgres connection pool
-    pub db_pool: Pool<Postgres>,
-}
+pub mod cache;
+pub mod error;
+pub mod routes;
+pub mod state;

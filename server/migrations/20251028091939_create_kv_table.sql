@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS kv_store (
-    key INT PRIMARY KEY,
-    value TEXT
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );

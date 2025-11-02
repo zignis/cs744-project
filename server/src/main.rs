@@ -1,74 +1,60 @@
-use crate::AppState;
-use crate::get_app_config;
-use axum::{Router, extract::State, routing::get};
-use dotenv::dotenv;
+use actix_web::{http::header::ContentType, web, App, HttpResponse, HttpServer, Responder};
+use dotenvy::dotenv;
+use num_cpus;
+use server::routes;
+use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
-use std::time::Duration;
-mod store;
+use std::env;
+use tracing_subscriber;
 
-fn make_api() -> Router<AppState> {
-    Router::new().route("/get_val", get(posts_handler))
+const DEFAULT_POOL_SIZE: u32 = 16;
+
+async fn not_found() -> impl Responder {
+    HttpResponse::NotFound()
+        .content_type(ContentType::plaintext())
+        .body("not found")
 }
 
-async fn posts_handler(State(state): State<AppState>) {
-    "hello"
-}
-
-#[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
+#[actix_web::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
     dotenv().ok();
 
-    match get_app_config() {
-        Ok(config) => {
-            let host = config.host.to_string();
-            let port = config.port.clone().parse::<u16>().unwrap();
+    let bind = env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0:6464".into());
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL not set");
+    let db_pool_size: u32 = env::var("DB_POOL_SIZE")
+        .ok()
+        .and_then(|x| x.parse().ok())
+        .unwrap_or(DEFAULT_POOL_SIZE);
 
-            println!("starting server at http://{}:{}", &host, &port);
+    let pool = PgPoolOptions::new()
+        .max_connections(db_pool_size)
+        .connect(&database_url)
+        .await?;
 
-            // Postgres
-            let db_pool = match PgPoolOptions::new()
-                .max_connections(30)
-                .min_connections(1)
-                .idle_timeout(Some(Duration::from_secs(120)))
-                .connect(&config.database_url)
-                .await
-            {
-                Ok(pool) => {
-                    println!("connected to postgres");
-
-                    // Run migrations.
-                    match sqlx::migrate!("./migrations").run(&pool).await {
-                        Ok(_) => {
-                            println!("Successfully ran database migrations");
-                        }
-                        Err(err) => {
-                            eprintln!("failed to run database migrations: {:?}", err);
-                            std::process::exit(1);
-                        }
-                    }
-
-                    pool
-                }
-                Err(err) => {
-                    eprintln!("failed to connect to Postgres: {:?}", err);
-                    std::process::exit(1);
-                }
-            };
-
-            let app = Router::new().nest("/api", make_api()).with_state(AppState {
-                config: get_app_config().unwrap(),
-                db_pool,
-            });
-            let listener = tokio::net::TcpListener::bind(&format!("{host}:{port}"))
-                .await
-                .unwrap();
-            axum::serve(listener, app).await.unwrap();
-
-            Ok(())
-        }
-        Err(error) => {
-            eprintln!("Environment configuration error: {:#?}", error);
-            Ok(())
+    match sqlx::migrate!("./migrations").run(&pool).await {
+        Ok(_) => println!("ran database migrations"),
+        Err(err) => {
+            eprintln!("failed to run database migrations: {:?}", err);
+            std::process::exit(1);
         }
     }
+
+    let state = AppState::new(pool).await;
+    let data = web::Data::new(state);
+
+    println!("starting at http://{}", bind);
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(data.clone())
+            .configure(routes::init_routes)
+            .default_service(web::route().to(not_found))
+    })
+    .workers(num_cpus::get()) // one worker per cpu core
+    .bind(bind)?
+    .run()
+    .await?;
+
+    Ok(())
 }

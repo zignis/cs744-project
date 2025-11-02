@@ -1,0 +1,32 @@
+use crate::error::AppError;
+use crate::state::AppState;
+use actix_web::{delete, web, HttpResponse};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Fragments {
+    key: String,
+}
+
+#[delete("/{key}")]
+async fn get_kv(
+    path: web::Path<Fragments>,
+    data: web::Data<AppState>,
+) -> Result<HttpResponse, AppError> {
+    let key = path.key.clone();
+    data.cache.as_ref().remove(&key).await;
+
+    match sqlx::query("DELETE FROM kv_store WHERE key = $1")
+        .bind(key.clone())
+        .execute(&data.db_pool)
+        .await?
+        .rows_affected()
+    {
+        0 => Err(AppError::NotFound(key)),
+        _ => Ok(HttpResponse::Ok().finish()),
+    }
+}
+
+pub fn init_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(get_kv);
+}
