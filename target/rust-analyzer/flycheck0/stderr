@@ -1,8 +1,0 @@
-   0.104856625s  INFO prepare_target{force=false package_id=server v0.1.0 (/Users/zignis/Downloads/cs744-project/server) target="server"}: cargo::core::compiler::fingerprint: fingerprint dirty for server v0.1.0 (/Users/zignis/Downloads/cs744-project/server)/Check { test: false }/TargetInner { name: "server", doc: true, ..: with_path("/Users/zignis/Downloads/cs744-project/server/src/main.rs", Edition2024) }
-   0.104871833s  INFO prepare_target{force=false package_id=server v0.1.0 (/Users/zignis/Downloads/cs744-project/server) target="server"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(Stale)
-   0.105698000s  INFO prepare_target{force=false package_id=server v0.1.0 (/Users/zignis/Downloads/cs744-project/server) target="server"}: cargo::core::compiler::fingerprint: fingerprint dirty for server v0.1.0 (/Users/zignis/Downloads/cs744-project/server)/Check { test: true }/TargetInner { name: "server", doc: true, ..: with_path("/Users/zignis/Downloads/cs744-project/server/src/main.rs", Edition2024) }
-   0.105702750s  INFO prepare_target{force=false package_id=server v0.1.0 (/Users/zignis/Downloads/cs744-project/server) target="server"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(Stale)
-    Checking server v0.1.0 (/Users/zignis/Downloads/cs744-project/server)
-error: could not compile `server` (bin "server") due to 7 previous errors
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `server` (bin "server" test) due to 7 previous errors
