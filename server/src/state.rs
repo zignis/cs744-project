@@ -1,18 +1,17 @@
 use crate::cache::Cache;
 use sqlx::PgPool;
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db_pool: PgPool,
-    pub cache: Arc<Cache>,
+    pub cache: Cache,
 }
 
 impl AppState {
-    pub async fn new(db_pool: PgPool) -> Self {
+    pub async fn new(db_pool: PgPool, cache_capacity: u64) -> Self {
         Self {
             db_pool,
-            cache: Arc::new(Cache::new()),
+            cache: Cache::new(cache_capacity),
         }
     }
 }

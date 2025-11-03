@@ -18,18 +18,22 @@ async fn post_kv(
     payload: Json<Request>,
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, AppError> {
-    sqlx::query(
+    sqlx::query!(
         r#"
 INSERT INTO kv_store (key, value)
 VALUES ($1, $2)
 ON CONFLICT (key)
     DO UPDATE SET value = EXCLUDED.value
         "#,
+        payload.key,
+        payload.value
     )
-    .bind(&payload.key)
-    .bind(&payload.value)
     .execute(&data.db_pool)
     .await?;
+
+    data.cache
+        .insert(payload.key.clone(), payload.value.clone())
+        .await;
 
     Ok(HttpResponse::Created().finish())
 }

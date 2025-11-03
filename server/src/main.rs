@@ -8,6 +8,7 @@ use std::env;
 use tracing_subscriber;
 
 const DEFAULT_POOL_SIZE: u32 = 16;
+const DEFAULT_CACHE_SIZE: u64 = 128_000;
 
 async fn not_found() -> impl Responder {
     HttpResponse::NotFound()
@@ -26,6 +27,10 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .and_then(|x| x.parse().ok())
         .unwrap_or(DEFAULT_POOL_SIZE);
+    let cache_size: u64 = env::var("CACHE_SIZE")
+        .ok()
+        .and_then(|x| x.parse().ok())
+        .unwrap_or(DEFAULT_CACHE_SIZE);
 
     let pool = PgPoolOptions::new()
         .max_connections(db_pool_size)
@@ -40,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    let state = AppState::new(pool).await;
+    let state = AppState::new(pool, cache_size).await;
     let data = web::Data::new(state);
 
     println!("starting at http://{}", bind);

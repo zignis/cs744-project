@@ -11,8 +11,8 @@ actix-rt = "2.11.0"
 actix-web = "4.11.0"
 actix-web-validator = "7.0.0"
 anyhow = "1.0.100"
-dashmap = "6.1.0"
 dotenvy = "0.15.7"
+moka = { version = "0.12.11", features = ["future"] }
 num_cpus = "1.17.0"
 serde = { version = "1.0.228", features = ["derive", "serde_derive"] }
 serde_json = "1.0.145"

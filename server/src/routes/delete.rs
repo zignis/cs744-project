@@ -14,10 +14,9 @@ async fn get_kv(
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, AppError> {
     let key = path.key.clone();
-    data.cache.as_ref().remove(&key).await;
+    data.cache.remove(&key).await;
 
-    match sqlx::query("DELETE FROM kv_store WHERE key = $1")
-        .bind(key.clone())
+    match sqlx::query!("DELETE FROM kv_store WHERE key = $1", key)
         .execute(&data.db_pool)
         .await?
         .rows_affected()

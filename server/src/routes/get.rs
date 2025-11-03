@@ -2,7 +2,6 @@ use crate::error::AppError;
 use crate::state::AppState;
 use actix_web::{get, web, HttpResponse};
 use serde::Deserialize;
-use sqlx::Row;
 
 #[derive(Deserialize)]
 struct Fragments {
@@ -16,21 +15,20 @@ async fn get_kv(
 ) -> Result<HttpResponse, AppError> {
     let key = path.key.clone();
 
-    if let Some(value) = data.cache.as_ref().get(&key).await {
+    if let Some(value) = data.cache.get(&key).await {
         return Ok(HttpResponse::Ok().body(value));
     }
 
-    let row = sqlx::query("SELECT value FROM kv_store WHERE key = $1")
-        .bind(key.clone())
+    let value = sqlx::query!("SELECT value FROM kv_store WHERE key = $1", key)
         .fetch_one(&data.db_pool)
         .await
         .map_err(|err| match err {
             sqlx::Error::RowNotFound => AppError::NotFound(key.clone()),
             other => AppError::Database(other),
-        })?;
-    let value = row.get::<String, _>("value");
+        })?
+        .value;
 
-    data.cache.as_ref().insert(key, value.clone()).await;
+    data.cache.insert(key, value.clone()).await;
 
     Ok(HttpResponse::Ok().body(value))
 }

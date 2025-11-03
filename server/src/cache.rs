@@ -1,37 +1,67 @@
-use dashmap::DashMap;
+use moka::policy::EvictionPolicy;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct KVPair {
     pub key: String,
     pub value: String,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Cache {
-    inner: Arc<DashMap<String, String>>,
+    map: moka::future::Cache<String, String>,
+    hits: Arc<AtomicU64>,
+    misses: Arc<AtomicU64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CacheStats {
+    pub hits: u64,
+    pub misses: u64,
 }
 
 impl Cache {
-    pub fn new() -> Self {
+    pub fn new(capacity: u64) -> Self {
         Self {
-            inner: Arc::new(DashMap::new()),
+            map: moka::future::Cache::builder()
+                .max_capacity(capacity)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
+            hits: Arc::new(AtomicU64::new(0)),
+            misses: Arc::new(AtomicU64::new(0)),
         }
     }
 
     pub async fn get(&self, key: &str) -> Option<String> {
-        self.inner.get(key).map(|x| x.clone())
+        match self.map.get(key).await {
+            Some(value) => {
+                self.hits.fetch_add(1, Ordering::Relaxed);
+                Some(value)
+            }
+            None => {
+                self.misses.fetch_add(1, Ordering::Relaxed);
+                None
+            }
+        }
     }
 
     pub async fn insert(&self, key: String, value: String) {
-        self.inner.insert(key, value);
+        self.map.insert(key, value).await;
     }
 
     pub async fn remove(&self, key: &str) {
-        self.inner.remove(key);
+        self.map.invalidate(key).await;
     }
 
-    pub async fn len(&self) -> usize {
-        self.inner.len()
+    pub async fn len(&self) -> u64 {
+        self.map.entry_count()
+    }
+
+    pub async fn stats(&self) -> CacheStats {
+        CacheStats {
+            hits: self.hits.load(Ordering::Relaxed),
+            misses: self.misses.load(Ordering::Relaxed),
+        }
     }
 }
