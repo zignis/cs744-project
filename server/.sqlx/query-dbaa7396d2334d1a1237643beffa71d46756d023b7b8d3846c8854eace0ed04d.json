@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO kv_store (key, value)\nVALUES ($1, $2)\nON CONFLICT (key)\nDO UPDATE\nSET value      = EXCLUDED.value,\n    updated_at = NOW()\nRETURNING (created_at = updated_at) AS inserted\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "inserted",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dbaa7396d2334d1a1237643beffa71d46756d023b7b8d3846c8854eace0ed04d"
+}

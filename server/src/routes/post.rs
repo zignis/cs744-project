@@ -18,24 +18,32 @@ async fn post_kv(
     payload: Json<Request>,
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, AppError> {
-    sqlx::query!(
+    let row = sqlx::query!(
         r#"
 INSERT INTO kv_store (key, value)
 VALUES ($1, $2)
 ON CONFLICT (key)
-    DO UPDATE SET value = EXCLUDED.value
+DO UPDATE
+SET value      = EXCLUDED.value,
+    updated_at = NOW()
+RETURNING (created_at = updated_at) AS inserted
         "#,
         payload.key,
         payload.value
     )
-    .execute(&data.db_pool)
+    .fetch_one(&data.db_pool)
     .await?;
 
     data.cache
         .insert(payload.key.clone(), payload.value.clone())
         .await;
 
-    Ok(HttpResponse::Created().finish())
+    Ok(if row.inserted.unwrap_or(false) {
+        HttpResponse::Created()
+    } else {
+        HttpResponse::NoContent()
+    }
+    .finish())
 }
 
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
