@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pg_pass
+      POSTGRES_DB: cs744
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./docker/postgres:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://postgres:pg_pass@postgres:5432/cs744
+      BIND_ADDRESS: 0.0.0.0:8000
+      CACHE_SIZE: 128_000
+      DB_POOL_SIZE: 32
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
