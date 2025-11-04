@@ -49,3 +49,43 @@ RETURNING (created_at = updated_at) AS inserted
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(post_kv);
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::setup_app::setup_test_app;
+    use actix_web::http::StatusCode;
+    use actix_web::test;
+    use serde_json::json;
+    use sqlx::PgPool;
+
+    #[sqlx::test]
+    async fn can_insert_key(pool: PgPool) -> sqlx::Result<()> {
+        let app = setup_test_app(pool.clone()).await;
+
+        // create
+        let req = test::TestRequest::post()
+            .uri("/")
+            .set_json(&json!({"key": "key_1", "value": "value_1"}))
+            .to_request();
+        let res = test::call_service(&app, req).await;
+        assert_eq!(res.status(), StatusCode::CREATED);
+
+        let req = test::TestRequest::get().uri("/key_1").to_request();
+        let res = test::call_and_read_body(&app, req).await;
+        assert_eq!(str::from_utf8(&res).unwrap(), "value_1");
+
+        // update
+        let req = test::TestRequest::post()
+            .uri("/")
+            .set_json(&json!({"key": "key_1", "value": "value_2"}))
+            .to_request();
+        let res = test::call_service(&app, req).await;
+        assert_eq!(res.status(), StatusCode::NO_CONTENT);
+
+        let req = test::TestRequest::get().uri("/key_1").to_request();
+        let res = test::call_and_read_body(&app, req).await;
+        assert_eq!(str::from_utf8(&res).unwrap(), "value_2");
+
+        Ok(())
+    }
+}

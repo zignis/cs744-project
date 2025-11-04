@@ -7,6 +7,7 @@ edition = "2024"
 doctest = false
 
 [dependencies]
+actix-http = "3.11.2"
 actix-rt = "2.11.0"
 actix-web = "4.11.0"
 actix-web-validator = "7.0.0"

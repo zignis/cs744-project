@@ -36,3 +36,35 @@ async fn get_kv(
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(get_kv);
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::setup_app::setup_test_app;
+    use actix_web::test;
+    use sqlx::PgPool;
+
+    #[sqlx::test]
+    async fn can_get_key(pool: PgPool) -> sqlx::Result<()> {
+        let app = setup_test_app(pool.clone()).await;
+
+        sqlx::query!(
+            "INSERT INTO kv_store (key, value) VALUES ($1, $2)",
+            "key_1",
+            "value_1"
+        )
+        .execute(&pool)
+        .await?;
+
+        // get key from database (will populate it into the cache)
+        let req = test::TestRequest::get().uri("/key_1").to_request();
+        let res = test::call_and_read_body(&app, req).await;
+        assert_eq!(str::from_utf8(&res).unwrap(), "value_1");
+
+        // get key from cache
+        let req = test::TestRequest::get().uri("/key_1").to_request();
+        let res = test::call_and_read_body(&app, req).await;
+        assert_eq!(str::from_utf8(&res).unwrap(), "value_1");
+
+        Ok(())
+    }
+}

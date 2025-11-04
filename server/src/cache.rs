@@ -54,14 +54,36 @@ impl Cache {
         self.map.invalidate(key).await;
     }
 
-    pub async fn len(&self) -> u64 {
+    pub fn len(&self) -> u64 {
         self.map.entry_count()
     }
 
-    pub async fn stats(&self) -> CacheStats {
+    pub fn stats(&self) -> CacheStats {
         CacheStats {
             hits: self.hits.load(Ordering::Relaxed),
             misses: self.misses.load(Ordering::Relaxed),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cache;
+
+    #[actix_web::test]
+    async fn cache_hit_and_miss_counts() {
+        let cache = Cache::new(8);
+
+        assert_eq!(cache.get("invalid").await, None);
+        assert_eq!(cache.stats().hits, 0);
+        assert_eq!(cache.stats().misses, 1);
+
+        cache.insert("key_1".into(), "value_1".into()).await;
+        assert_eq!(cache.get("key_1").await, Some("value_1".to_string()));
+        assert_eq!(cache.stats().hits, 1);
+        assert_eq!(cache.stats().misses, 1);
+
+        cache.remove("key_1").await;
+        assert_eq!(cache.get("key_1").await, None);
     }
 }
