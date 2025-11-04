@@ -20,6 +20,7 @@ pub struct Cache {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheStats {
     pub capacity: u64,
+    pub entries: u64,
     pub hits: u64,
     pub misses: u64,
 }
@@ -65,6 +66,7 @@ impl Cache {
     pub fn stats(&self) -> CacheStats {
         CacheStats {
             capacity: self.capacity,
+            entries: self.map.entry_count(),
             hits: self.hits.load(Ordering::Relaxed),
             misses: self.misses.load(Ordering::Relaxed),
         }
