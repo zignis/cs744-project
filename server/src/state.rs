@@ -1,7 +1,7 @@
 use crate::cache::Cache;
 use sqlx::PgPool;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AppState {
     pub db_pool: PgPool,
     pub cache: Cache,
