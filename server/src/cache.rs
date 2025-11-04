@@ -1,4 +1,5 @@
 use moka::policy::EvictionPolicy;
+use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -15,7 +16,7 @@ pub struct Cache {
     misses: Arc<AtomicU64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheStats {
     pub hits: u64,
     pub misses: u64,
