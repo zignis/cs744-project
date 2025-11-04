@@ -11,6 +11,7 @@ pub struct KVPair {
 
 #[derive(Debug, Clone)]
 pub struct Cache {
+    capacity: u64,
     map: moka::future::Cache<String, String>,
     hits: Arc<AtomicU64>,
     misses: Arc<AtomicU64>,
@@ -18,6 +19,7 @@ pub struct Cache {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheStats {
+    pub capacity: u64,
     pub hits: u64,
     pub misses: u64,
 }
@@ -25,6 +27,7 @@ pub struct CacheStats {
 impl Cache {
     pub fn new(capacity: u64) -> Self {
         Self {
+            capacity,
             map: moka::future::Cache::builder()
                 .max_capacity(capacity)
                 .eviction_policy(EvictionPolicy::lru())
@@ -61,6 +64,7 @@ impl Cache {
 
     pub fn stats(&self) -> CacheStats {
         CacheStats {
+            capacity: self.capacity,
             hits: self.hits.load(Ordering::Relaxed),
             misses: self.misses.load(Ordering::Relaxed),
         }
