@@ -1,6 +1,7 @@
 use actix_web::web;
 
 mod delete;
+mod flush;
 mod get;
 mod post;
 mod stats;
@@ -10,4 +11,5 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
     post::init_routes(cfg);
     delete::init_routes(cfg);
     stats::init_routes(cfg);
+    flush::init_routes(cfg);
 }

@@ -5,6 +5,7 @@ server/debug
 server/target
 loadgen/debug
 loadgen/target
+loadgen/summary.json
 
 # docker
 server/docker/postgres/*

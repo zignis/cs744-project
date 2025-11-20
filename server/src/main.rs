@@ -7,7 +7,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::env;
 use tracing_subscriber;
 
-const DEFAULT_POOL_SIZE: u32 = 16;
+const DEFAULT_POOL_SIZE: u32 = 32;
 const DEFAULT_CACHE_SIZE: u64 = 128_000;
 
 async fn not_found() -> impl Responder {

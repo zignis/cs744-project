@@ -71,6 +71,10 @@ impl Cache {
             misses: self.misses.load(Ordering::Relaxed),
         }
     }
+
+    pub fn flush(&self) {
+        self.map.invalidate_all();
+    }
 }
 
 #[cfg(test)]

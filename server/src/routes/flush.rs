@@ -1,34 +1,20 @@
 use crate::error::AppError;
 use crate::state::AppState;
-use actix_web::{delete, web, HttpResponse};
-use serde::Deserialize;
+use actix_web::{post, web, HttpResponse};
 
-#[derive(Deserialize)]
-struct Fragments {
-    key: String,
-}
-
-#[delete("/{key}")]
-async fn get_kv(
-    path: web::Path<Fragments>,
-    data: web::Data<AppState>,
-) -> Result<HttpResponse, AppError> {
-    let key = path.key.clone();
-    match sqlx::query!("DELETE FROM kv_store WHERE key = $1", key)
+#[post("/flush")]
+async fn flush_kv(data: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+    let result = sqlx::query!(r#"DELETE FROM kv_store"#)
         .execute(&data.db_pool)
-        .await?
-        .rows_affected()
-    {
-        0 => Err(AppError::NotFound(key)),
-        _ => {
-            data.cache.remove(&key).await;
-            Ok(HttpResponse::Ok().finish())
-        }
-    }
+        .await?;
+
+    data.cache.flush();
+
+    Ok(HttpResponse::Ok().body(format!("flushed {} pairs", result.rows_affected())))
 }
 
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(get_kv);
+    cfg.service(flush_kv);
 }
 
 #[cfg(test)]
@@ -40,7 +26,7 @@ mod tests {
     use sqlx::PgPool;
 
     #[sqlx::test]
-    async fn can_remove_key(pool: PgPool) -> sqlx::Result<()> {
+    async fn can_flush(pool: PgPool) -> sqlx::Result<()> {
         let app = setup_test_app(pool.clone()).await;
 
         // create
@@ -55,8 +41,8 @@ mod tests {
         let res = test::call_and_read_body(&app, req).await;
         assert_eq!(str::from_utf8(&res).unwrap(), "value_1");
 
-        // delete
-        let req = test::TestRequest::delete().uri("/key_1").to_request();
+        // flush
+        let req = test::TestRequest::post().uri("/flush").to_request();
         let res = test::call_service(&app, req).await;
         assert!(res.status().is_success());
 
