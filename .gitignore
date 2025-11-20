@@ -3,6 +3,8 @@
 target/
 server/debug
 server/target
+loadgen/debug
+loadgen/target
 
 # docker
 server/docker/postgres/*
