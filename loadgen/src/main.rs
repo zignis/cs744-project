@@ -112,10 +112,7 @@ async fn main() -> anyhow::Result<()> {
         }));
     }
 
-    // wait for duration + grace period
     join_all(handles).await;
-
-    // build report
     let summary = metrics.summary(args.threads, args.duration);
     metrics.print_report(&summary);
 
