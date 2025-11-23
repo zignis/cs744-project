@@ -23,3 +23,6 @@ server/docker/postgres/*
 
 # secrets
 **/*.env
+
+# misc
+.DS_Store
